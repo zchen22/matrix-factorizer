@@ -18,7 +18,7 @@ CC = g++
 NVCC = $(CUDA)/bin/nvcc
 
 # Compiler options
-CCFLAGS = -std=c++11 -Wall
+CCFLAGS = -I$(CUDA)/include -std=c++11 -Wall
 NVFLAGS = -arch=sm_35 -std=c++11 --use_fast_math
 LDFLAGS = -std=c++11 -Wall
 NVLDFLAGS = -std=c++11
