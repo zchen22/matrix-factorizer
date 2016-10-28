@@ -55,8 +55,8 @@ int MatrixFactorizer::Setup(
     config_->Load(arg_map["-c"]);
     logger_->Debug(stderr, "%s\n", config_->ToString().c_str());
   }
-  if (arg_map["-d"].compare("gpu") == 0) {
-    gpu_ = new Gpu(0, logger_);
+  if (arg_map.find("-d") != arg_map.end()) {
+    gpu_ = new Gpu(std::stoi(arg_map["-d"]), logger_);
   }
   return 0;
 }

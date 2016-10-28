@@ -54,7 +54,7 @@ int MatrixFactorGpu(std::unordered_map<std::string, std::string> arg_map) {
 
 int PrintHelp(const char* exec) {
   fprintf(stderr, "\nUsage: %s -t train-file [-e test-file] [-c config-file] "
-              "[-d gpu]\n\n", exec);
+              "[-d gpu-id]\n\n", exec);
   fprintf(stderr, "-t train-file:\n");
   fprintf(stderr, "\tTrain data file in COO format.\n");
   fprintf(stderr, "\tEach line is a triplet (user-id, item-id, rating).\n");
@@ -70,8 +70,8 @@ int PrintHelp(const char* exec) {
   fprintf(stderr, "[-c config-file]:\n");
   fprintf(stderr, "\tConfiguration file.\n");
   fprintf(stderr, "\tComment lines start with '#'s.\n");
-  fprintf(stderr, "[-d gpu]:\n");
-  fprintf(stderr, "\tGPU accelerated computation enabled.\n");
+  fprintf(stderr, "[-d gpu-id]:\n");
+  fprintf(stderr, "\tGPU #gpu-id used to accelerate computation.\n");
   return 0;
 }
 
@@ -81,11 +81,8 @@ int main(const int argc, const char** argv) {
     ParseCommandArgs(argc, argv, arg_map);
     if (arg_map.find("-d") == arg_map.end()) {
       MatrixFactorCpu(arg_map);
-    } else if (arg_map["-d"].compare("gpu") == 0) {
-      MatrixFactorGpu(arg_map);
     } else {
-      fprintf(stderr, "Unrecognized device '%s'\n", arg_map["-d"].c_str());
-      exit(EXIT_FAILURE);
+      MatrixFactorGpu(arg_map);
     }
     return 0;
   }
