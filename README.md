@@ -17,6 +17,6 @@ These are the base requirements to build and use FactorG:
 ```sh
 make
 cd bin
-./mf -t train-file [-e test-file] [-c config-file] [-d gpu]
+./mf -t train-file [-e test-file] [-c config-file] [-d gpu-id]
 ```
 
