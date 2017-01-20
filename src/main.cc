@@ -30,7 +30,7 @@ int ParseCommandArgs(const int argc, const char** argv,
   return 0;
 }
 
-int MatrixFactorCpu(std::unordered_map<std::string, std::string> arg_map) {
+int MatrixFactorCpu(std::unordered_map<std::string, std::string>& arg_map) {
   MatrixFactorizer mf;
   mf.Setup(arg_map);
   mf.InitializeFeatures();
@@ -40,7 +40,7 @@ int MatrixFactorCpu(std::unordered_map<std::string, std::string> arg_map) {
   return 0;
 }
 
-int MatrixFactorGpu(std::unordered_map<std::string, std::string> arg_map) {
+int MatrixFactorGpu(std::unordered_map<std::string, std::string>& arg_map) {
   MatrixFactorizer mf;
   mf.Setup(arg_map);
   mf.InitializeFeatures();
