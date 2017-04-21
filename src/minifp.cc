@@ -31,6 +31,20 @@ MiniFp::MiniFp(const double d) {
     uint64_t u64;
   } value;
   value.f64 = d;
+  bits_.sign = (value.u64 >> 63) & 1;
+  int biased_exponent = (value.u64 >> 52) & 0x7ff;
+  if (biased_exponent == 0) { // +-0 and denormal numbers
+    bits_.exponent = 0;
+    bits_.mantissa = (value.u64 >> 49) & 0x7;
+  } else if (biased_exponent == 0x7ff) { // +-infinity and NaN
+    bits_.exponent = 0xf;
+    bits_.mantissa = 0x4; // Quiet NaN
+  } else { // Normalized values
+    int real_exponent = biased_exponent - 1023;
+    assert(real_exponent + 7 > 0 && real_exponent + 7 < 0xf);
+    bits_.exponent = real_exponent + 7;
+    bits_.mantissa = (value.u64 >> 49) & 0x7;
+  }
 }
 
 MiniFp::~MiniFp() {
