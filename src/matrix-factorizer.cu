@@ -603,9 +603,9 @@ float MatrixFactorizer::PredictRating(const int64_t user_id,
           });
     } else if (config_->gd_mode == ConfigurationSet::kGdModeAdapSgd) {
       const auto& user_parameters =
-          user_features_->GetParameter1dVector().data();
+          user_features_->GetParameter32bit1dVector().data();
       const auto& item_parameters =
-          item_features_->GetParameter1dVector().data();
+          item_features_->GetParameter32bit1dVector().data();
       return std::inner_product(
           user_parameters + user_id * config_->num_features,
           user_parameters + (user_id + 1) * config_->num_features,

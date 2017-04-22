@@ -2,6 +2,7 @@
 #define FEATURE_MATRIX_H_
 
 // C++ headers
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -30,15 +31,17 @@ class FeatureMatrix {
   const std::vector<float>& GetFeature1dVector() const {
     return feature_1d_vector_;
   }
-  const std::vector<unsigned int>& GetParameter1dVector() const {
-    return parameter_1d_vector_;
+  const std::vector<unsigned int>& GetParameter32bit1dVector() const {
+    return parameter_32bit_1d_vector_;
   }
   unsigned short* GetFeatureHalfDev() const {
     return feature_half_1d_vector_dev_;
   }
   float* GetFeatureDev() const { return feature_1d_vector_dev_; }
   float* GetGradientDev() const { return gradient_1d_vector_dev_; }
-  unsigned int* GetParameterDev() const { return parameter_1d_vector_dev_; }
+  unsigned int* GetParameterDev() const {
+    return parameter_32bit_1d_vector_dev_;
+  }
   int* GetLockDev() const { return lock_vector_dev_; }
   // Setters
   void SetFeatureVector(const int row, const std::vector<float>& v) {
@@ -69,7 +72,8 @@ class FeatureMatrix {
   std::vector<unsigned short> feature_half_1d_vector_;
   std::vector<float> feature_1d_vector_;
   std::vector<float> gradient_1d_vector_;
-  std::vector<unsigned int> parameter_1d_vector_;
+  std::vector<unsigned int> parameter_32bit_1d_vector_;
+  std::vector<uint16_t> parameter_16bit_1d_vector_;
   // Metadata
   int num_rows_;
   ConfigurationSet* config_;
@@ -77,7 +81,8 @@ class FeatureMatrix {
   unsigned short* feature_half_1d_vector_dev_;
   float* feature_1d_vector_dev_;
   float* gradient_1d_vector_dev_;
-  unsigned int* parameter_1d_vector_dev_;
+  unsigned int* parameter_32bit_1d_vector_dev_;
+  uint16_t* parameter_16bit_1d_vector_dev_;
   int* lock_vector_dev_;
   // File that stores features
   std::string filename_;

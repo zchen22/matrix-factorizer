@@ -55,12 +55,12 @@ int FeatureMatrix::Flatten() {
         }
       }
     } else if (config_->gd_mode == ConfigurationSet::kGdModeAdapSgd) {
-      parameter_1d_vector_.reserve(num_rows_ * config_->num_features);
+      parameter_32bit_1d_vector_.reserve(num_rows_ * config_->num_features);
       for (int i = 0; i < num_rows_; ++i) {
         for (int j = 0; j < config_->num_features; ++j) {
           const unsigned int feature = Float2Half(feature_vector_[i][j]);
           const unsigned int gradient = Float2Half(gradient_vector_[i][j]);
-          parameter_1d_vector_.push_back((gradient << 16) | feature);
+          parameter_32bit_1d_vector_.push_back((gradient << 16) | feature);
         }
       }
     }
@@ -79,16 +79,22 @@ int FeatureMatrix::Flatten() {
 
 int FeatureMatrix::AllocateGpuMemory() {
   cudaError_t e = cudaSuccess;
-  if (config_->precision == ConfigurationSet::kPrecisionHalf) {
+  if (config_->precision == ConfigurationSet::kPrecisionMini) {
+    assert(config_->gd_mode == ConfigurationSet::kGdModeAdapSgd);
+    e = cudaMalloc(&parameter_16bit_1d_vector_dev_,
+                   parameter_16bit_1d_vector_.size() *
+                       sizeof parameter_16bit_1d_vector_[0]);
+    logger_->CheckCudaError(e);
+  } else if (config_->precision == ConfigurationSet::kPrecisionHalf) {
     if (config_->gd_mode == ConfigurationSet::kGdModeMiniBatchSgd) {
       e = cudaMalloc(&feature_half_1d_vector_dev_,
                      feature_half_1d_vector_.size() *
                          sizeof feature_half_1d_vector_[0]);
       logger_->CheckCudaError(e);
     } else if (config_->gd_mode == ConfigurationSet::kGdModeAdapSgd) {
-      e = cudaMalloc(&parameter_1d_vector_dev_,
-                     parameter_1d_vector_.size() *
-                         sizeof parameter_1d_vector_[0]);
+      e = cudaMalloc(&parameter_32bit_1d_vector_dev_,
+                     parameter_32bit_1d_vector_.size() *
+                         sizeof parameter_32bit_1d_vector_[0]);
       logger_->CheckCudaError(e);
     }
   } else if (config_->precision == ConfigurationSet::kPrecisionSingle) {
@@ -109,7 +115,15 @@ int FeatureMatrix::AllocateGpuMemory() {
 
 int FeatureMatrix::CopyToGpu() {
   cudaError_t e = cudaSuccess;
-  if (config_->precision == ConfigurationSet::kPrecisionHalf) {
+  if (config_->precision == ConfigurationSet::kPrecisionMini) {
+    assert(config_->gd_mode == ConfigurationSet::kGdModeAdapSgd);
+    e = cudaMemcpy(parameter_16bit_1d_vector_dev_,
+                   parameter_16bit_1d_vector_.data(),
+                   parameter_16bit_1d_vector_.size() *
+                       sizeof parameter_16bit_1d_vector_[0],
+                   cudaMemcpyHostToDevice);
+    logger_->CheckCudaError(e);
+  } else if (config_->precision == ConfigurationSet::kPrecisionHalf) {
     if (config_->gd_mode == ConfigurationSet::kGdModeMiniBatchSgd) {
       e = cudaMemcpy(feature_half_1d_vector_dev_,
                      feature_half_1d_vector_.data(),
@@ -118,9 +132,10 @@ int FeatureMatrix::CopyToGpu() {
                      cudaMemcpyHostToDevice);
       logger_->CheckCudaError(e);
     } else if (config_->gd_mode == ConfigurationSet::kGdModeAdapSgd) {
-      e = cudaMemcpy(parameter_1d_vector_dev_, parameter_1d_vector_.data(),
-                     parameter_1d_vector_.size() *
-                         sizeof parameter_1d_vector_[0],
+      e = cudaMemcpy(parameter_32bit_1d_vector_dev_,
+                     parameter_32bit_1d_vector_.data(),
+                     parameter_32bit_1d_vector_.size() *
+                         sizeof parameter_32bit_1d_vector_[0],
                      cudaMemcpyHostToDevice);
       logger_->CheckCudaError(e);
     }
@@ -145,7 +160,15 @@ int FeatureMatrix::CopyToGpu() {
 
 int FeatureMatrix::CopyToCpuFlatten() {
   cudaError_t e = cudaSuccess;
-  if (config_->precision == ConfigurationSet::kPrecisionHalf) {
+  if (config_->precision == ConfigurationSet::kPrecisionMini) {
+    assert(config_->gd_mode == ConfigurationSet::kGdModeAdapSgd);
+    e = cudaMemcpy(parameter_16bit_1d_vector_.data(),
+                  parameter_16bit_1d_vector_dev_,
+                  parameter_16bit_1d_vector_.size() *
+                      sizeof parameter_16bit_1d_vector_[0],
+                  cudaMemcpyDeviceToHost);
+    logger_->CheckCudaError(e);
+  } else if (config_->precision == ConfigurationSet::kPrecisionHalf) {
     if (config_->gd_mode == ConfigurationSet::kGdModeMiniBatchSgd) {
       e = cudaMemcpy(feature_half_1d_vector_.data(),
                      feature_half_1d_vector_dev_,
@@ -154,9 +177,10 @@ int FeatureMatrix::CopyToCpuFlatten() {
                      cudaMemcpyDeviceToHost);
       logger_->CheckCudaError(e);
     } else if (config_->gd_mode == ConfigurationSet::kGdModeAdapSgd) {
-      e = cudaMemcpy(parameter_1d_vector_.data(), parameter_1d_vector_dev_,
-                     parameter_1d_vector_.size() *
-                         sizeof parameter_1d_vector_[0],
+      e = cudaMemcpy(parameter_32bit_1d_vector_.data(),
+                     parameter_32bit_1d_vector_dev_,
+                     parameter_32bit_1d_vector_.size() *
+                         sizeof parameter_32bit_1d_vector_[0],
                      cudaMemcpyDeviceToHost);
       logger_->CheckCudaError(e);
     }
@@ -193,13 +217,16 @@ int FeatureMatrix::Dump1dToFile() {
   FILE* f = fopen(filename_.c_str(), "w");
   for (int64_t row = 0; row < num_rows_; ++row) {
     for (int feature_id = 0; feature_id < config_->num_features; ++feature_id) {
-      if (config_->precision == ConfigurationSet::kPrecisionHalf) {
+      if (config_->precision == ConfigurationSet::kPrecisionMini) {
+        assert(config_->gd_mode == ConfigurationSet::kGdModeAdapSgd);
+        assert(0);
+      } else if (config_->precision == ConfigurationSet::kPrecisionHalf) {
         if (config_->gd_mode == ConfigurationSet::kGdModeMiniBatchSgd) {
           const float feature = Half2Float(feature_half_1d_vector_
               [row * config_->num_features + feature_id]);
           fprintf(f, "%10.2g ", feature);
-        } else if (config_->precision == ConfigurationSet::kPrecisionSingle) {
-          const unsigned int parameter = parameter_1d_vector_
+        } else if (config_->gd_mode == ConfigurationSet::kGdModeAdapSgd) {
+          const unsigned int parameter = parameter_32bit_1d_vector_
               [row * config_->num_features + feature_id];
           fprintf(f, "%10.2g ", Half2Float(parameter & 0xffff));
         }

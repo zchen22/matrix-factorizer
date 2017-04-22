@@ -32,7 +32,8 @@ struct ConfigurationSet {
   } decomp_mode;
   bool lock;
   enum Precision {
-    kPrecisionHalf = 0,
+    kPrecisionMini = 0,
+    kPrecisionHalf,
     kPrecisionSingle,
     kPrecisionDouble
   } precision;
