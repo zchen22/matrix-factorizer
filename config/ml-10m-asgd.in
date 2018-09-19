@@ -6,7 +6,7 @@ regularization_factor 0.05
 max_num_iterations    70
 decomp_mode           2
 lock                  0
-precision             0
+precision             1
 show_train_rmse       0
 show_test_rmse        1
 
